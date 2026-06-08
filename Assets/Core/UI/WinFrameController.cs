@@ -1,9 +1,10 @@
 using System.Collections;
+using Mirror;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class WinFrameController : MonoBehaviour
+public class WinFrameController : NetworkBehaviour
 {
     [SerializeField]
     private GameObject Frame;
@@ -13,14 +14,15 @@ public class WinFrameController : MonoBehaviour
     private GameManager manager;
     [SerializeField]
     private float DisplayDuration = 1;
-    void Start()
+    public override void OnStartLocalPlayer()
     {
+        base.OnStartLocalPlayer();
         if (manager != null)
         {
             if (Frame != null && Text != null)
             {
-                manager.OnRoundWinEvent.AddListener(OnWin);
-                manager.OnWinEvent.AddListener(OnWin);
+                manager.scoreService.OnRoundWinEvent.AddListener(OnWin);
+                manager.scoreService.OnWinEvent.AddListener(OnWin);
             }
         }
     }

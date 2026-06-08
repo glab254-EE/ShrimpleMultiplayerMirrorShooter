@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 public class PlayerShootOrigin : NetworkBehaviour
 {
     [SerializeField]
-    private InputActionReference ShootKeybind;
+    private KeyCode InputKey;
     [SerializeField]
     private Vector3 SpawnDirectionRelative;
     [SerializeField]
@@ -15,15 +15,12 @@ public class PlayerShootOrigin : NetworkBehaviour
     private GameObject prefab;
     [SerializeField]
     private PlayerHealthHandler healthHandler;
-    private void Start()
+    private void Update()
     {
-        ShootKeybind.action.performed += OnShootPress;
-        ShootKeybind.action.Enable();
-    }
-    private void OnDestroy()
-    {
-        ShootKeybind.action.performed -= OnShootPress;
-        ShootKeybind.action.Disable();
+        if (Input.GetKeyDown(InputKey))
+        {
+            OnShootPress();
+        }
     }
     [Server]
     void SpawnBullet()
@@ -50,7 +47,7 @@ public class PlayerShootOrigin : NetworkBehaviour
     {
         SpawnBullet();
     }
-    void OnShootPress(InputAction.CallbackContext _)
+    void OnShootPress()
     {
         if (isOwned)
         {

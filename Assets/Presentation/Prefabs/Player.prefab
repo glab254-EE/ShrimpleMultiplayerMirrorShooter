@@ -167,8 +167,9 @@ MonoBehaviour:
   OnHealthChangedEvent:
     m_PersistentCalls:
       m_Calls: []
+  <Team>k__BackingField: -1
   <MaxHealth>k__BackingField: 4
-  UIPrefab: {fileID: 8469254707306098938, guid: b44b26954d2aada44ac7c5760846746a, type: 3}
+  UIPrefab: {fileID: 1727549632868513841, guid: c1d06bd869121be478af11cda0ff600d, type: 3}
 --- !u!114 &8416342084087597748
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -184,7 +185,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  ShootKeybind: {fileID: 1120369429361536294, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  InputKey: 323
   SpawnDirectionRelative: {x: 0, y: 1, z: 0}
   Point: {fileID: 8068068501374054023}
   prefab: {fileID: 4110182628233058092, guid: 24f57dcb201ebd440bb6d936c395e994, type: 3}

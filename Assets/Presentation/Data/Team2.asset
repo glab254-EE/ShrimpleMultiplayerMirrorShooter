@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Team2
   m_EditorClassIdentifier: Assembly-CSharp::TeamSO
   <TeamIndex>k__BackingField: 1
-  <playerMaterial>k__BackingField: {fileID: 2100000, guid: d2f4b6a74b3f573469354461b58d2d61, type: 2}
+  <TeamColor>k__BackingField: {r: 1, g: 0, b: 0, a: 1}
   TeamCount: 0
   <TeamName>k__BackingField: reb

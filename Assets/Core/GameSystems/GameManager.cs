@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using Mirror;
-using Mirror.BouncyCastle.Tls;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
@@ -12,25 +11,20 @@ public class GameManager : NetworkManager
     public List<TeamSO> Teams { get; protected set; }
     [SerializeField]
     private List<Material> MaterialsPerTeam;
-    public Dictionary<int, float> Score { get; protected set; } = new();
-    public UnityEvent<string> OnRoundWinEvent;
-    public UnityEvent<string> OnWinEvent;
-    public UnityEvent OnItemUpdateEvent;
-    [SerializeField] private float CheckDelay=1;
-    [SerializeField] private float ShutdownAfterWinDelay = 2;
-    [SerializeField] private float ScoreAdditionPerWin = 1;
-    [SerializeField] private float ScoreRequiredToWin = 12;
-    [SerializeField] private string RoundWinTextFormat = "Team {0} won the round!";
-    [SerializeField] private string WinTextFormat = "Team {0} won the game!!";
+    public ScoreService scoreService;
+    [SerializeField] private float CheckDelay = 1;
+    public event System.Action<int> OnRoundChange;
     public int CurrentRound { get; private set; } = 1;
     private List<(TeamSO, GameObject,NetworkConnectionToClient)> SpawnedTeamPlayers = new();
-    private List<(TeamSO, NetworkConnectionToClient)> Connections = new();
+    private List<NetworkConnectionToClient> Connections = new();
+    private Dictionary<NetworkConnectionToClient,TeamSO> TeamToConnections = new();
     private Coroutine currentMainCoroutine;
     private Coroutine roundStartCoroutine;
     private bool Starting = false;
     private bool Started = false;
     public override void OnServerConnect(NetworkConnectionToClient conn)
     {
+        Connections.Add(conn);
         UpdateTeamCount();
         base.OnServerConnect(conn);
         PlayerHealthHandler[] found = FindObjectsByType<PlayerHealthHandler>();
@@ -41,16 +35,16 @@ public class GameManager : NetworkManager
                 if (player.gameObject != null && player.gameObject.activeInHierarchy && player.Team > -1 && Teams.Count > player.Team)
                 {
                     SpawnedTeamPlayers.Add((Teams[player.Team], player.gameObject, player.connectionToClient));
-                    bool foundItem = false;
-                    foreach (var item in Connections)
-                    {
-                        if (item.Item2 != conn || item.Item2 != player.connectionToClient) continue;
-                        foundItem = true;
-                    }
-                    if (!foundItem)
-                    {
-                        Connections.Add((Teams[player.Team], player.connectionToClient));
-                    }
+                    //bool foundItem = false;
+                    //foreach (var item in Connections)
+                    //{
+                    //    if (item.Item2 != conn || item.Item2 != player.connectionToClient) continue;
+                    //    foundItem = true;
+                    //}
+                    //if (!foundItem)
+                    //{
+                        TeamToConnections.Add(player.connectionToClient,Teams[player.Team]);
+                    
                 }
             }
         }
@@ -59,30 +53,44 @@ public class GameManager : NetworkManager
             roundStartCoroutine??=StartCoroutine(OnRoundStart());
         }
         OnServerAddPlayer(conn);
-        OnItemUpdateEvent?.Invoke();
     }
     public override void Start()
     {
-        Connections = new();
+        scoreService = ScoreService.Instance;
+        scoreService.SetUp(Teams);
+        TeamToConnections = new();
         base.Start();
         UpdateTeamCount();
     }
     public override void OnServerDisconnect(NetworkConnectionToClient conn)
     {
         base.OnServerDisconnect(conn);
+        if (Connections.Contains(conn))
+        {
+            Connections.Remove(conn);
+        }
+        if (TeamToConnections.ContainsKey(conn))
+        {
+            TeamToConnections.Remove(conn);
+        }
         UpdateTeamCount();
     }
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
-        TeamSO team = PickAvailableTeam();
+        TeamSO team = PickAvailableTeam(conn);
 
-        int foundExsistingConnection = Connections.FindIndex(a => a.Item2 == conn);
-        if (foundExsistingConnection == -1)
+        if (team == null) return;
+        bool found = TeamToConnections.ContainsKey(conn);
+        if (!found)
         {
-            Connections.Add((team, conn));
+            TeamToConnections.Add(conn,team);
+        }
+        else
+        {
+            team = TeamToConnections[conn];
         }
         if (Started || !Starting) return;
-        Debug.Log("Spawning! " + conn.connectionId);
+        Debug.Log("Spawning! " + conn.connectionId + " " + team.TeamName);
         UpdateTeamCount();
         Transform startPos =RespawnService.Instance.CustomGetStartPosition(team.TeamIndex);
         GameObject player = startPos != null
@@ -93,9 +101,8 @@ public class GameManager : NetworkManager
         // => appending the connectionId is WAY more useful for debugging!
         player.name = $"{playerPrefab.name} [connId={conn.connectionId}]";
         NetworkServer.DestroyPlayerForConnection(conn);
-        NetworkServer.AddPlayerForConnection(conn, player);
         int foundItem = -1;
-        for (int i = SpawnedTeamPlayers.Count - 1; i > 0; i--)
+        for (int i = SpawnedTeamPlayers.Count - 1; i >= 0; i--)
         {
             if (SpawnedTeamPlayers[i].Item2 == null || !SpawnedTeamPlayers[i].Item2.activeInHierarchy)
             {
@@ -119,24 +126,18 @@ public class GameManager : NetworkManager
             SpawnedTeamPlayers.Add((team, player, conn));
         }
         UpdateTeamCount();
-        if (team.playerMaterial == null && team.TeamIndex < MaterialsPerTeam.Count)
-        {
-            team.playerMaterial = MaterialsPerTeam[team.TeamIndex];
-        }
-        if (player.TryGetComponent(out MeshRenderer renderer))
-        {
-            renderer.material = team.playerMaterial;
-        }
+        NetworkServer.AddPlayerForConnection(conn, player);
         if (player.TryGetComponent(out PlayerHealthHandler handler))
         {
-            handler.Init(team.TeamIndex, team.playerMaterial);
+            handler.Init(team.TeamIndex,team.TeamColor);
         }
     }
-    private TeamSO PickAvailableTeam()
+    private TeamSO PickAvailableTeam(NetworkConnectionToClient conn)
     {
         UpdateTeamCount();
+        if (conn == null) return null;
         TeamSO output = null;
-        int lowestCount = 1000;
+        int lowestCount = int.MaxValue;
         foreach(var team in Teams)
         {
             if (team.TeamCount < lowestCount)
@@ -148,21 +149,18 @@ public class GameManager : NetworkManager
         return output;
     }
     public void UpdateTeamCount()
-    { 
+    {
+        scoreService.RefreshScore();
         List<NetworkConnectionToClient> filtered = new();
         foreach (var team in Teams)
         {
             team.TeamCount = 0;
-            if (!Score.ContainsKey(team.TeamIndex))
-            {
-                Score.Add(team.TeamIndex, 0);
-            }
-            foreach (var item in Connections)
-            {
-                if (filtered.Contains(item.Item2) || item.Item1 == null || item.Item2 == null || !Teams.Contains(item.Item1) || item.Item1 != team) continue;
-                filtered.Add(item.Item2);
-                team.TeamCount++;
-            }
+        }
+        foreach (var item in TeamToConnections)
+        {
+            if (filtered.Contains(item.Key) || item.Key == null || item.Value == null || !Teams.Contains(item.Value)){ continue; }
+            filtered.Add(item.Key);
+            item.Value.TeamCount++;
         }
     }
     private IEnumerator OnRoundStart()
@@ -173,7 +171,7 @@ public class GameManager : NetworkManager
         {
             Destroy(player);
         }
-        for (int i = SpawnedTeamPlayers.Count - 1; i > 0; i--)
+        for (int i = SpawnedTeamPlayers.Count - 1; i >= 0; i--)
         {
             if (SpawnedTeamPlayers[i].Item2 != null)
             {
@@ -208,9 +206,9 @@ public class GameManager : NetworkManager
     private void StartRound()
     {
         Starting = true;
-        for (int i = Connections.Count - 1;i> 0; i--)
+        for (int i = Connections.Count - 1;i >= 0; i--)
         {
-            OnServerAddPlayer(Connections[i].Item2);
+            OnServerAddPlayer(Connections[i]);
         }
         Started = true;
     }
@@ -244,36 +242,20 @@ public class GameManager : NetworkManager
             if (winningTeam != null)
             {
                 Started = false;
-                Dictionary<int, float> cloned = new(Score);
-                foreach (var scoreData in cloned)
-                {
-                    if (Score.ContainsKey(scoreData.Key) &&scoreData.Key == winningTeam.TeamIndex)
-                    {
-                        Score[scoreData.Key] += ScoreAdditionPerWin;
-                        OnItemUpdateEvent?.Invoke();
-                        if (Score[scoreData.Key] >= ScoreRequiredToWin)
-                        {
-                            OnWinEvent?.Invoke(string.Format(WinTextFormat, winningTeam.name));
-                            yield return new WaitForSecondsRealtime(ShutdownAfterWinDelay);
-                            NetworkServer.DisconnectAll();
-                            yield break;
-                        }
-                        else
-                        {
-                            OnRoundWinEvent?.Invoke(string.Format(RoundWinTextFormat, winningTeam.TeamName));
-                            yield return new WaitForSecondsRealtime(ShutdownAfterWinDelay);
-                        }
-                    }
-                }
                 if (roundStartCoroutine != null)
                 {
                     StopCoroutine(roundStartCoroutine);
                 }
+                yield return StartCoroutine(scoreService.AddPoints(winningTeam));
                 CurrentRound++;
-                OnItemUpdateEvent?.Invoke();
+                OnRoundWinReplication();
                 roundStartCoroutine = StartCoroutine(OnRoundStart());
                 yield return roundStartCoroutine;
             }
         }
+    }
+    private void OnRoundWinReplication()
+    {
+        OnRoundChange?.Invoke(CurrentRound);
     }
 }

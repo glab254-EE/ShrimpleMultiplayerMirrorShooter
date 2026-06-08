@@ -1,70 +1,94 @@
 using System;
 using Mirror;
-using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 
 public class PlayerHealthHandler : NetworkBehaviour
 {
+    public static PlayerHealthHandler LocalPlayer;
     public UnityEvent OnHealthChangedEvent;
+    [field:SerializeField]
     public int Team { get; private set; } = -1;
     public int CurrentHealth { get; private set; } = 0;
     [field:SerializeField]
     public int MaxHealth {get;private set;}
     public event Action<GameObject> OnDeath;
+    public event Action<int> OnDamaged;
     [SerializeField]
     private GameObject UIPrefab;
     [SyncVar(hook = nameof(SyncHealth))]
-    private int _syncHealth = 0;
-    private Material Material;
-    TMP_Text textField;
+    private int _syncHealth = 0; 
+    [SyncVar(hook = nameof(SyncColorChange))]
+    private Color playerColor;
+    private MeshRenderer Renderer;
     GameObject UIobject;
-    void Start()
+    void Awake()
     {
+        TryGetComponent(out Renderer);
         CurrentHealth = MaxHealth;
         _syncHealth = CurrentHealth;
-        if (isClient && isOwned)
-        {
-            OnHealthChangedInvoke();
-            GameObject foundUI = GameObject.FindWithTag("MainCanvas");
-            if (foundUI != null && UIobject == null && UIPrefab != null)
-            {
-                UIobject = Instantiate(UIPrefab, foundUI.transform);
-                UIobject.TryGetComponent(out textField);
-            }
-        }
     }
-    private void OnDestroy()
+    void SyncColorChange(Color oldColor, Color newColor)
     {
-        Destroy(UIobject);
+        Renderer.material.color = newColor;
     }
     void SyncHealth(int _, int newV)
     {
         CurrentHealth = newV;
-        OnHealthChangedInvoke();
+    }
+    [TargetRpc]
+    void ReplicateToPlayerNewValue(NetworkConnection target, int value)
+    {
+        OnDamaged?.Invoke(value);
+        if (value <= 0)
+        {
+            OnDeath?.Invoke(gameObject);
+        }
+    }
+    public override void OnStartLocalPlayer()
+    {
+        TryGetComponent(out Renderer);
+        CurrentHealth = MaxHealth;
+        _syncHealth = CurrentHealth;
+        base.OnStartLocalPlayer();
+        LocalPlayer = this;
+        GameObject foundUI = GameObject.FindWithTag("MainCanvas");
+        if (foundUI != null && UIobject == null && UIPrefab != null)
+        {
+            UIobject = Instantiate(UIPrefab, foundUI.transform);
+        }
+    }
+    public override void OnStopLocalPlayer()
+    {
+        base.OnStopLocalPlayer();
+        if (UIobject != null)
+        {
+            Destroy(UIobject);
+        }
+        OnDeath = null;
+        OnDamaged = null;
     }
     [Server]
-    public void Init(int team, Material material)
+    public void Init(int team,Color color)
     {
         if (Team == -1 && isServer) 
         { 
             Team = team;
-            Material = material;
-            if (gameObject.TryGetComponent(out MeshRenderer renderer))
-            {
-                renderer.material = material;
-            }
         }
+        if (Renderer != null)
+        {
+            Renderer.material.color = color;
+        }
+        playerColor = color;
     }
     [Server]
     public void ChangeHealthValue(int newV)
     {
         _syncHealth = newV;
         CurrentHealth = _syncHealth;
+        ReplicateToPlayerNewValue(connectionToClient, CurrentHealth);
         if (newV <= 0)
         {
-            OnDeath?.Invoke(gameObject);
             NetworkServer.Destroy(gameObject);
         }
     }
@@ -82,19 +106,10 @@ public class PlayerHealthHandler : NetworkBehaviour
         else
         {
             DamageCommand();
-            OnHealthChangedInvoke();
         }
-        if (Material != null && gameObject.TryGetComponent(out MeshRenderer renderer) && renderer.material != Material)
+        if (playerColor != null && gameObject.TryGetComponent(out MeshRenderer renderer) && renderer.material.color != playerColor)
         {
-            renderer.material = Material;
-        }
-    }
-    [Client]
-    public void OnHealthChangedInvoke()
-    {
-        if (textField != null && connectionToClient == this.connectionToClient && connectionToServer == this.connectionToServer && netId == this.netId)
-        {
-            textField.text = $"{CurrentHealth} / {MaxHealth}";
+            renderer.material.color = playerColor;
         }
     }
 }

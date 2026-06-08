@@ -1074,23 +1074,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0e489d6b99d49b3468942953a416f344, type: 2}
   - {fileID: 11400000, guid: 87d64bd0b5c6d794e87b4ae3b5da879c, type: 2}
   MaterialsPerTeam:
-  - {fileID: 2100000, guid: 370127a6055640e4fa9007ffabf37f47, type: 2}
+  - {fileID: 2100000, guid: 889392633fa140641896999c683e8eac, type: 2}
   - {fileID: 2100000, guid: d2f4b6a74b3f573469354461b58d2d61, type: 2}
-  OnRoundWinEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  OnWinEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  OnItemUpdateEvent:
-    m_PersistentCalls:
-      m_Calls: []
+  scoreService: {fileID: 0}
   CheckDelay: 2
-  ShutdownAfterWinDelay: 4
-  ScoreAdditionPerWin: 1
-  ScoreRequiredToWin: 12
-  RoundWinTextFormat: Team {0} won the round!
-  WinTextFormat: Team {0} won!
 --- !u!114 &1047717862
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1227,6 +1214,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1230040151}
   - component: {fileID: 1230040152}
+  - component: {fileID: 1230040153}
   m_Layer: 5
   m_Name: WinFrame
   m_TagString: Untagged
@@ -1266,10 +1254,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb721de9f854cd1478f76cd87fb9bc6b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WinFrameController
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   Frame: {fileID: 888796366}
   Text: {fileID: 2048846991}
   manager: {fileID: 1047717861}
   DisplayDuration: 2
+--- !u!114 &1230040153
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1230040150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 3917122459
+  _assetId: 0
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
 --- !u!1 &1376448612
 GameObject:
   m_ObjectHideFlags: 0
@@ -1452,6 +1460,7 @@ GameObject:
   - component: {fileID: 1511697167}
   - component: {fileID: 1511697166}
   - component: {fileID: 1511697168}
+  - component: {fileID: 1511697169}
   m_Layer: 5
   m_Name: RoundFrame
   m_TagString: Untagged
@@ -1498,9 +1507,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '
-
-'
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -1592,8 +1599,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 661bd980c4e48db45a8c1360d836c745, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoundsCounter
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   Format: Round {0}
   manager: {fileID: 1047717861}
+--- !u!114 &1511697169
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1511697164}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 3743225770
+  _assetId: 0
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
 --- !u!1 &1623465639
 GameObject:
   m_ObjectHideFlags: 0
@@ -1637,6 +1664,7 @@ GameObject:
   - component: {fileID: 1642613486}
   - component: {fileID: 1642613485}
   - component: {fileID: 1642613484}
+  - component: {fileID: 1642613487}
   m_Layer: 5
   m_Name: ScoreCounter
   m_TagString: Untagged
@@ -1675,6 +1703,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 18e55c89e6fc366429f1d41d6b88365b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreCounter
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   manager: {fileID: 1047717861}
 --- !u!114 &1642613485
 MonoBehaviour:
@@ -1776,6 +1807,99 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1642613482}
   m_CullTransparentMesh: 1
+--- !u!114 &1642613487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1642613482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 3419469736
+  _assetId: 0
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
+--- !u!1 &1851757180
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1851757182}
+  - component: {fileID: 1851757181}
+  - component: {fileID: 1851757183}
+  m_Layer: 0
+  m_Name: ScoreService
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1851757181
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1851757180}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a25a974c37baf14c8ff606aa5c92f7a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScoreService
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  ShutdownAfterWinDelay: 4
+  ScoreAdditionPerWin: 1
+  ScoreRequiredToWin: 12
+  RoundWinTextFormat: Team {0} won the round!
+  WinTextFormat: Team {0} won the game!!
+  OnRoundWinEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  OnWinEvent:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!4 &1851757182
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1851757180}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1851757183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1851757180}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 4208971804
+  _assetId: 0
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
 --- !u!1 &1902888316
 GameObject:
   m_ObjectHideFlags: 0
@@ -2221,3 +2345,4 @@ SceneRoots:
   - {fileID: 1376448614}
   - {fileID: 1047717860}
   - {fileID: 1220981344}
+  - {fileID: 1851757182}

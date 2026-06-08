@@ -1,27 +1,37 @@
+using System;
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 
 [RequireComponent(typeof(TMPro.TMP_Text))]
-public class ScoreCounter : MonoBehaviour
+public class ScoreCounter : NetworkBehaviour
 {
     [SerializeField]
     private GameManager manager;
     private TMPro.TMP_Text text;
-    void Start()
+    public override void OnStartLocalPlayer()
     {
+        base.OnStartLocalPlayer();
         text = GetComponent<TMPro.TMP_Text>();
-        manager.OnItemUpdateEvent.AddListener(OnUpdate);
-        OnUpdate();
+        manager.scoreService.Score.OnChange += OnUpdate;
+        UpdateText();
     }
-    void OnUpdate()
+
+    private void OnUpdate(SyncIDictionary<int, float>.Operation operation, int arg2, float arg3)
     {
+        UpdateText();
+    }
+
+    void UpdateText()
+    {
+        if (text == null) return; 
         string ToShow = "";
-        Dictionary<int,float> score = manager.Score;
+        var score = manager.scoreService.Score;
         List<TeamSO> teams = manager.Teams;
 
         float bestTeamScore = -1;
 
-        foreach(var item in score)
+        foreach (var item in score)
         {
             if (teams.Count > item.Key && item.Key >= 0)
             {
