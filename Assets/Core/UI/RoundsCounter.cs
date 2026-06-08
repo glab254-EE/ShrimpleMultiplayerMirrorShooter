@@ -2,22 +2,23 @@ using Mirror;
 using UnityEngine;
 
 [RequireComponent(typeof(TMPro.TMP_Text))]
-public class RoundsCounter : NetworkBehaviour
+public class RoundsCounter : MonoBehaviour
 {
     [SerializeField]
     private string Format = "Round {0}";
     [SerializeField]
     private GameManager manager;
     private TMPro.TMP_Text text;
-    public override void OnStartLocalPlayer()
+    public void Start()
     {
-        base.OnStartLocalPlayer();
         text = GetComponent<TMPro.TMP_Text>();
-        manager.OnRoundChange += OnUpdate;
+        manager.scoreService.OnWinEvent.AddListener(OnUpdate);
+        manager.scoreService.OnWinEvent.AddListener(OnUpdate);
+        manager.scoreService.OnScoreChange += ()=> OnUpdate(null);
     }
-    void OnUpdate(int number)
+    void OnUpdate(string _)
     {
         if (text == null) return;
-        text.text = string.Format(Format, number);
+        text.text = string.Format(Format, manager.scoreService.CurrentRound);
     }
 }

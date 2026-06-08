@@ -5,13 +5,13 @@ using UnityEngine;
 
 [RequireComponent(typeof(TMP_Text))]
 [DisallowMultipleComponent]
-public class LocalHealthUIHandler : NetworkBehaviour
+public class LocalHealthUIHandler : MonoBehaviour
 {
     [SerializeField]
     private string Format = "{0} / {1}";
     private PlayerHealthHandler player;
     private TMP_Text text;
-    public override void OnStartLocalPlayer()
+    public void Start()
     {
         player = PlayerHealthHandler.LocalPlayer;
         if (player == null)

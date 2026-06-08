@@ -13,8 +13,6 @@ public class GameManager : NetworkManager
     private List<Material> MaterialsPerTeam;
     public ScoreService scoreService;
     [SerializeField] private float CheckDelay = 1;
-    public event System.Action<int> OnRoundChange;
-    public int CurrentRound { get; private set; } = 1;
     private List<(TeamSO, GameObject,NetworkConnectionToClient)> SpawnedTeamPlayers = new();
     private List<NetworkConnectionToClient> Connections = new();
     private Dictionary<NetworkConnectionToClient,TeamSO> TeamToConnections = new();
@@ -247,15 +245,9 @@ public class GameManager : NetworkManager
                     StopCoroutine(roundStartCoroutine);
                 }
                 yield return StartCoroutine(scoreService.AddPoints(winningTeam));
-                CurrentRound++;
-                OnRoundWinReplication();
                 roundStartCoroutine = StartCoroutine(OnRoundStart());
                 yield return roundStartCoroutine;
             }
         }
-    }
-    private void OnRoundWinReplication()
-    {
-        OnRoundChange?.Invoke(CurrentRound);
     }
 }

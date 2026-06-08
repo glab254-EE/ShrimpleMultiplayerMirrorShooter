@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class WinFrameController : NetworkBehaviour
+public class WinFrameController : MonoBehaviour
 {
     [SerializeField]
     private GameObject Frame;
@@ -14,9 +14,8 @@ public class WinFrameController : NetworkBehaviour
     private GameManager manager;
     [SerializeField]
     private float DisplayDuration = 1;
-    public override void OnStartLocalPlayer()
+    public void Start()
     {
-        base.OnStartLocalPlayer();
         if (manager != null)
         {
             if (Frame != null && Text != null)

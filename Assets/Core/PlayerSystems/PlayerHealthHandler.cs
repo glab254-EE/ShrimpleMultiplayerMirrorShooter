@@ -28,7 +28,7 @@ public class PlayerHealthHandler : NetworkBehaviour
         CurrentHealth = MaxHealth;
         _syncHealth = CurrentHealth;
     }
-    void SyncColorChange(Color oldColor, Color newColor)
+    void SyncColorChange(Color _, Color newColor)
     {
         Renderer.material.color = newColor;
     }
@@ -47,15 +47,19 @@ public class PlayerHealthHandler : NetworkBehaviour
     }
     public override void OnStartLocalPlayer()
     {
+        base.OnStartLocalPlayer();
         TryGetComponent(out Renderer);
         CurrentHealth = MaxHealth;
         _syncHealth = CurrentHealth;
-        base.OnStartLocalPlayer();
-        LocalPlayer = this;
+        if (isOwned) LocalPlayer = this;
         GameObject foundUI = GameObject.FindWithTag("MainCanvas");
         if (foundUI != null && UIobject == null && UIPrefab != null)
         {
             UIobject = Instantiate(UIPrefab, foundUI.transform);
+        }
+        if (playerColor != null && Renderer != null)
+        {
+            Renderer.material.color = playerColor;
         }
     }
     public override void OnStopLocalPlayer()
@@ -80,6 +84,7 @@ public class PlayerHealthHandler : NetworkBehaviour
             Renderer.material.color = color;
         }
         playerColor = color;
+        ReplicateToPlayerNewValue(connectionToClient, CurrentHealth);
     }
     [Server]
     public void ChangeHealthValue(int newV)
@@ -102,10 +107,6 @@ public class PlayerHealthHandler : NetworkBehaviour
         if (isServer)
         {
             ChangeHealthValue(CurrentHealth-1);
-        }
-        else
-        {
-            DamageCommand();
         }
         if (playerColor != null && gameObject.TryGetComponent(out MeshRenderer renderer) && renderer.material.color != playerColor)
         {

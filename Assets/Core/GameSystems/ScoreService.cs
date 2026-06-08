@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Mirror;
@@ -13,9 +14,13 @@ public class ScoreService : NetworkBehaviour
     [SerializeField] private string WinTextFormat = "Team {0} won the game!!";
     public List<TeamSO> Teams { get; protected set; }
     public static ScoreService Instance;
-    public SyncDictionary<int, float> Score { get; protected set; } = new();
+    public event Action OnScoreChange;
+    public readonly SyncDictionary<int, float> Score = new();
     public UnityEvent<string> OnRoundWinEvent;
     public UnityEvent<string> OnWinEvent;
+    public int CurrentRound { get; private set; } = 1;
+    [SyncVar(hook = nameof(OnRoundEndChange))]
+    private int CurrentRoundServer = 1;
     void Awake()
     {
         if (Instance != null)
@@ -47,12 +52,12 @@ public class ScoreService : NetworkBehaviour
                 else
                 {
                     ReplicateWinEvents(false, winningTeam);
+                    CurrentRoundServer++;
                     yield return new WaitForSecondsRealtime(ShutdownAfterWinDelay);
                 }
             }
         }
     }
-    [ClientRpc]
     public void ReplicateWinEvents(bool IsGameWon, TeamSO winningTeam)
     {
         if (IsGameWon)
@@ -62,16 +67,7 @@ public class ScoreService : NetworkBehaviour
         {
             OnRoundWinEvent?.Invoke(string.Format(RoundWinTextFormat, winningTeam.TeamName));
         }
-    }
-    public float GetScoreByTeam(TeamSO team)
-    {
-        if (Teams.Contains(team) && Score.ContainsKey(team.TeamIndex))
-        {
-            return Score[team.TeamIndex];
-        } else
-        {
-            return 0;
-        }
+        OnScoreChange?.Invoke();
     }
     public void RefreshScore()
     {
@@ -83,5 +79,9 @@ public class ScoreService : NetworkBehaviour
                 Score.Add(team.TeamIndex, 0);
             }
         }
+    }
+    private void OnRoundEndChange(int _, int newv)
+    {
+        CurrentRound = newv;
     }
 }

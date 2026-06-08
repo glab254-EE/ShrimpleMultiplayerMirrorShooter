@@ -4,20 +4,18 @@ using Mirror;
 using UnityEngine;
 
 [RequireComponent(typeof(TMPro.TMP_Text))]
-public class ScoreCounter : NetworkBehaviour
+public class ScoreCounter : MonoBehaviour
 {
     [SerializeField]
     private GameManager manager;
     private TMPro.TMP_Text text;
-    public override void OnStartLocalPlayer()
+    public void Start()
     {
-        base.OnStartLocalPlayer();
         text = GetComponent<TMPro.TMP_Text>();
-        manager.scoreService.Score.OnChange += OnUpdate;
+        manager.scoreService.OnScoreChange += OnUpdate;
         UpdateText();
     }
-
-    private void OnUpdate(SyncIDictionary<int, float>.Operation operation, int arg2, float arg3)
+    private void OnUpdate()
     {
         UpdateText();
     }
@@ -46,5 +44,6 @@ public class ScoreCounter : NetworkBehaviour
                 }
             }
         }
+        text.text = ToShow;
     }
 }

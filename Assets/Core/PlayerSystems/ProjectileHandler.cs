@@ -49,11 +49,12 @@ public class ProjectileHandler : NetworkBehaviour
                 return;
             }
         }
-        if (other.TryGetComponent(out PlayerHealthHandler playerHealthHandler))
+        if (other.TryGetComponent(out PlayerHealthHandler playerHealthHandler) && Initialized)
         {
             if (playerHealthHandler.Team != -1 && team != playerHealthHandler.Team)
             {
                 playerHealthHandler.DamagePlayer();
+                Initialized = false;
             }
         }
         if (isServer)

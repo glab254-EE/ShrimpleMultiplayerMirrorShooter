@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Mirror;
 using UnityEngine;
-using static GameManager;
 
 public class RespawnService : MonoBehaviour
 {
@@ -22,11 +21,11 @@ public class RespawnService : MonoBehaviour
     }
     public void ResetAvailability()
     {
-        foreach (var item in respawnPoints)
+        for (int i = 0; i < respawnPoints.Count; i++)
         {
-            if (!item.Available)
+            if (!respawnPoints[i].Available)
             {
-                item.Available = true;
+                respawnPoints[i].Available = true;
             }
         }
     }
@@ -35,7 +34,7 @@ public class RespawnService : MonoBehaviour
         // team ones
         if (respawnPoints != null)
         {
-            List<PlayerRespawnPointPerTeam> filteredList = respawnPoints;
+            List<PlayerRespawnPointPerTeam> filteredList = new(respawnPoints);
             filteredList.RemoveAll(c => c.team.TeamIndex != pteam);
             filteredList.RemoveAll(m => !m.Available);
             if (filteredList != null)
