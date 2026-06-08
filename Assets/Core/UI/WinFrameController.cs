@@ -4,20 +4,20 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class WinFrameController : MonoBehaviour
+public class WinFrameController : MonoBehaviour, IInitializable<GameManager>
 {
     [SerializeField]
     private GameObject Frame;
     [SerializeField]
     private TMP_Text Text;
     [SerializeField]
-    private GameManager manager;
-    [SerializeField]
     private float DisplayDuration = 1;
-    public void Start()
+    private GameManager manager;
+    public void Initialize(GameManager _manager)
     {
-        if (manager != null)
+        if (manager == null)
         {
+            manager = _manager;
             if (Frame != null && Text != null)
             {
                 manager.scoreService.OnRoundWinEvent.AddListener(OnWin);

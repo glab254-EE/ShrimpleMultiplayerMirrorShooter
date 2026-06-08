@@ -52,12 +52,12 @@ public class GameManager : NetworkManager
         }
         OnServerAddPlayer(conn);
     }
-    public override void Start()
+    public override void OnStartServer()
     {
-        scoreService = ScoreService.Instance;
+        scoreService = scoreService != null ? scoreService : ScoreService.Instance;
         scoreService.SetUp(Teams);
-        TeamToConnections = new();
-        base.Start();
+        scoreService.RefreshScore();
+        base.OnStartServer();
         UpdateTeamCount();
     }
     public override void OnServerDisconnect(NetworkConnectionToClient conn)

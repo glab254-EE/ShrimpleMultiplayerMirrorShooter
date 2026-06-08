@@ -4,13 +4,14 @@ using Mirror;
 using UnityEngine;
 
 [RequireComponent(typeof(TMPro.TMP_Text))]
-public class ScoreCounter : MonoBehaviour
+public class ScoreCounter : MonoBehaviour, IInitializable<GameManager>
 {
-    [SerializeField]
     private GameManager manager;
     private TMPro.TMP_Text text;
-    public void Start()
+
+    public void Initialize(GameManager paremetre)
     {
+        manager = paremetre;
         text = GetComponent<TMPro.TMP_Text>();
         manager.scoreService.OnScoreChange += OnUpdate;
         UpdateText();
@@ -44,6 +45,7 @@ public class ScoreCounter : MonoBehaviour
                 }
             }
         }
+        Debug.Log(ToShow);
         text.text = ToShow;
     }
 }

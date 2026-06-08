@@ -12,7 +12,7 @@ public class ScoreService : NetworkBehaviour
     [SerializeField] private float ScoreRequiredToWin = 12;
     [SerializeField] private string RoundWinTextFormat = "Team {0} won the round!";
     [SerializeField] private string WinTextFormat = "Team {0} won the game!!";
-    public List<TeamSO> Teams { get; protected set; }
+    public List<TeamSO> Teams { get; protected set; } = new();
     public static ScoreService Instance;
     public event Action OnScoreChange;
     public readonly SyncDictionary<int, float> Score = new();
@@ -21,21 +21,54 @@ public class ScoreService : NetworkBehaviour
     public int CurrentRound { get; private set; } = 1;
     [SyncVar(hook = nameof(OnRoundEndChange))]
     private int CurrentRoundServer = 1;
-    void Awake()
+    private bool Initialized = false;
+    public override void OnStartServer()
     {
+        base.OnStartServer();
         if (Instance != null)
         {
             Destroy(gameObject);
             return;
         }
-        Instance = this;    
+        Instance = this;
+    }
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
     }
     public void SetUp(List<TeamSO> teams)
     {
-        Teams = teams;
+        if (!isServer && isClient)
+        {
+            SetUpServiceCmd(teams);
+
+        } 
+        else
+        {
+            SetUpService(teams);
+        } 
     }
+    [Command]
+    public void SetUpServiceCmd(List<TeamSO> teams)
+    {
+        SetUpService(teams);
+    }
+    [Server]
+    public void SetUpService(List<TeamSO> teams)
+    {
+        Initialized = true;
+        Teams = new(teams);
+    }
+    [Server]
     public IEnumerator AddPoints(TeamSO winningTeam)
     {
+        if (!isServer) yield break;
         Dictionary<int, float> cloned = new(Score);
         foreach (var scoreData in cloned)
         {
@@ -58,6 +91,7 @@ public class ScoreService : NetworkBehaviour
             }
         }
     }
+    [ClientRpc]
     public void ReplicateWinEvents(bool IsGameWon, TeamSO winningTeam)
     {
         if (IsGameWon)
@@ -69,8 +103,10 @@ public class ScoreService : NetworkBehaviour
         }
         OnScoreChange?.Invoke();
     }
+    [Server]
     public void RefreshScore()
     {
+        if (!isServer || !Initialized) return;
         foreach (var team in Teams)
         {
             team.TeamCount = 0;
