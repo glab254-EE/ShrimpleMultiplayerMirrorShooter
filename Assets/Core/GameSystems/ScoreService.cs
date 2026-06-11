@@ -14,8 +14,7 @@ public class ScoreService : NetworkBehaviour
     [SerializeField] private string WinTextFormat = "Team {0} won the game!!";
     public List<TeamSO> Teams { get; protected set; } = new();
     public static ScoreService Instance;
-    public event Action OnScoreChange;
-    public readonly SyncDictionary<int, float> Score = new();
+    public readonly SyncDictionary<string, float> Score = new();
     public UnityEvent<string> OnRoundWinEvent;
     public UnityEvent<string> OnWinEvent;
     public int CurrentRound { get; private set; } = 1;
@@ -25,29 +24,21 @@ public class ScoreService : NetworkBehaviour
     public override void OnStartServer()
     {
         base.OnStartServer();
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
         Instance = this;
+        DontDestroyOnLoad(gameObject);
+        
     }
     public override void OnStartClient()
     {
         base.OnStartClient();
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
         Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
     public void SetUp(List<TeamSO> teams)
     {
         if (!isServer && isClient)
         {
             SetUpServiceCmd(teams);
-
         } 
         else
         {
@@ -65,43 +56,62 @@ public class ScoreService : NetworkBehaviour
         Initialized = true;
         Teams = new(teams);
     }
-    [Server]
     public IEnumerator AddPoints(TeamSO winningTeam)
     {
-        if (!isServer) yield break;
-        Dictionary<int, float> cloned = new(Score);
+        var cloned = new Dictionary<string, float>(Score);
         foreach (var scoreData in cloned)
         {
-            if (Score.ContainsKey(scoreData.Key) && scoreData.Key == winningTeam.TeamIndex)
+            if (Score.ContainsKey(scoreData.Key) && scoreData.Key == winningTeam.TeamName)
             {
                 Score[scoreData.Key] += ScoreAdditionPerWin;
                 if (Score[scoreData.Key] >= ScoreRequiredToWin)
                 {
-                    ReplicateWinEvents(true,winningTeam);
+                    ReplicateWinEvents(true,winningTeam.TeamName);
                     yield return new WaitForSecondsRealtime(ShutdownAfterWinDelay);
                     NetworkServer.DisconnectAll();
                     yield break;
                 }
                 else
                 {
-                    ReplicateWinEvents(false, winningTeam);
-                    CurrentRoundServer++;
+                    ReplicateWinEvents(false, winningTeam.TeamName);
+                    IncrementRound();
                     yield return new WaitForSecondsRealtime(ShutdownAfterWinDelay);
                 }
             }
         }
     }
+    private void IncrementRound()
+    {
+        if (isServer)
+        {
+            IncrementRoundServer();
+        } else
+        {
+            CurrentRound++;
+            IncrementCommand();
+        }
+    }
+    [Command]
+    private void IncrementCommand()
+    {
+        IncrementRoundServer();
+    }
+    [Server]
+    private void IncrementRoundServer()
+    {
+        CurrentRound++;
+        CurrentRoundServer++;
+    }
     [ClientRpc]
-    public void ReplicateWinEvents(bool IsGameWon, TeamSO winningTeam)
+    public void ReplicateWinEvents(bool IsGameWon, string winningTeamName)
     {
         if (IsGameWon)
         {
-            OnWinEvent?.Invoke(string.Format(WinTextFormat, winningTeam.name));
+            OnWinEvent?.Invoke(string.Format(WinTextFormat, winningTeamName));
         } else
         {
-            OnRoundWinEvent?.Invoke(string.Format(RoundWinTextFormat, winningTeam.TeamName));
+            OnRoundWinEvent?.Invoke(string.Format(RoundWinTextFormat, winningTeamName));
         }
-        OnScoreChange?.Invoke();
     }
     [Server]
     public void RefreshScore()
@@ -110,9 +120,9 @@ public class ScoreService : NetworkBehaviour
         foreach (var team in Teams)
         {
             team.TeamCount = 0;
-            if (!Score.ContainsKey(team.TeamIndex))
+            if (!Score.ContainsKey(team.TeamName))
             {
-                Score.Add(team.TeamIndex, 0);
+                Score.Add(team.TeamName, 0);
             }
         }
     }

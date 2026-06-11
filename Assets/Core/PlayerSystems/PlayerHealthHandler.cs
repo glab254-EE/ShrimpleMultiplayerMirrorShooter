@@ -17,7 +17,8 @@ public class PlayerHealthHandler : NetworkBehaviour
     [SerializeField]
     private GameObject UIPrefab;
     [SyncVar(hook = nameof(SyncHealth))]
-    private int _syncHealth = 0; 
+    private int _syncHealth = 0;
+    private Color localPlayerColor;
     [SyncVar(hook = nameof(SyncColorChange))]
     private Color playerColor;
     private MeshRenderer Renderer;
@@ -30,7 +31,8 @@ public class PlayerHealthHandler : NetworkBehaviour
     }
     void SyncColorChange(Color _, Color newColor)
     {
-        Renderer.material.color = newColor;
+        localPlayerColor = newColor;
+        Renderer.material.color = localPlayerColor;
     }
     void SyncHealth(int _, int newV)
     {
@@ -57,10 +59,7 @@ public class PlayerHealthHandler : NetworkBehaviour
         {
             UIobject = Instantiate(UIPrefab, foundUI.transform);
         }
-        if (playerColor != null && Renderer != null)
-        {
-            Renderer.material.color = playerColor;
-        }
+        LocalChangeColor();
     }
     public override void OnStopLocalPlayer()
     {
@@ -71,6 +70,18 @@ public class PlayerHealthHandler : NetworkBehaviour
         }
         OnDeath = null;
         OnDamaged = null;
+    }
+    private void LocalChangeColor()
+    {
+        if (localPlayerColor != null && Renderer != null && Renderer.material.color != localPlayerColor)
+        {
+            Renderer.material.color = localPlayerColor;
+        }
+    }
+    [TargetRpc]
+    private void ReplicateChangeColorLocal(NetworkConnectionToClient target)
+    {
+        LocalChangeColor();
     }
     [Server]
     public void Init(int team,Color color)
@@ -85,6 +96,7 @@ public class PlayerHealthHandler : NetworkBehaviour
         }
         playerColor = color;
         ReplicateToPlayerNewValue(connectionToClient, CurrentHealth);
+        ReplicateChangeColorLocal(connectionToClient);
     }
     [Server]
     public void ChangeHealthValue(int newV)

@@ -12,7 +12,8 @@ public class RoundsCounter : MonoBehaviour, IInitializable<GameManager>
     {
         manager = paremetre;
         text = GetComponent<TMPro.TMP_Text>();
-        manager.scoreService.OnScoreChange += () => OnUpdate(null);
+        manager.scoreService.OnWinEvent.AddListener(OnUpdate);
+        manager.scoreService.OnRoundWinEvent.AddListener(OnUpdate);
         OnUpdate(null);
     }
     void OnUpdate(string _)

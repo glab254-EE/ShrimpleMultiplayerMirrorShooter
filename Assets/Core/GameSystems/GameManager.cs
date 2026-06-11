@@ -54,8 +54,8 @@ public class GameManager : NetworkManager
     }
     public override void OnStartServer()
     {
-        scoreService = scoreService != null ? scoreService : ScoreService.Instance;
-        scoreService.SetUp(Teams);
+        UpdateScoreServiceReference();
+        scoreService.SetUp(new(Teams));
         scoreService.RefreshScore();
         base.OnStartServer();
         UpdateTeamCount();
@@ -210,6 +210,10 @@ public class GameManager : NetworkManager
         }
         Started = true;
     }
+    private void UpdateScoreServiceReference()
+    {
+        scoreService = scoreService != null ? scoreService : ScoreService.Instance;
+    }
     private IEnumerator PrimaryCoroutine()
     {
         while (gameObject.activeInHierarchy)
@@ -244,6 +248,7 @@ public class GameManager : NetworkManager
                 {
                     StopCoroutine(roundStartCoroutine);
                 }
+                UpdateScoreServiceReference();
                 yield return StartCoroutine(scoreService.AddPoints(winningTeam));
                 roundStartCoroutine = StartCoroutine(OnRoundStart());
                 yield return roundStartCoroutine;
